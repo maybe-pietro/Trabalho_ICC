@@ -1,0 +1,1 @@
+O Auto Feed é um projeto de faculdade que busca automatizar a alimentação de peixes. Aqui em nosso site você poderá encomendar um alimentador 100% automático em que você decidirá o quanto de ração seu peixe receberá, quantas vezes ao dia e em qual horário. Crie seu usuário e personalize o tratamento do seu peixe.

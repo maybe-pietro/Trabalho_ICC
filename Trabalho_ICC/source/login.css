@@ -1,0 +1,78 @@
+/* Estilo para página de login/cadastro */
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: linear-gradient(120deg, #e0e7ef 0%, #f0f4f8 100%);
+    margin: 0;
+    padding: 0;
+}
+
+.login-container {
+    max-width: 400px;
+    margin: 60px auto;
+    background: #fff;
+    padding: 32px 28px;
+    border-radius: 14px;
+    box-shadow: 0 4px 24px rgba(44, 62, 80, 0.10);
+}
+
+h2 {
+    text-align: center;
+    color: #2d3a4b;
+    margin-bottom: 24px;
+}
+
+form label {
+    display: block;
+    margin-bottom: 6px;
+    color: #4a5a6a;
+    font-weight: 500;
+}
+
+form input[type="text"],
+form input[type="email"],
+form input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 18px;
+    border: 1px solid #cfd8dc;
+    border-radius: 6px;
+    font-size: 1rem;
+    background: #f7fafc;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    background: #2d3a4b;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: background 0.2s;
+}
+button:hover {
+    background: #1a232e;
+}
+
+.switch-link {
+    display: block;
+    text-align: center;
+    margin-top: 10px;
+    color: #2d3a4b;
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 0.98rem;
+}
+
+.error-message {
+    color: #c0392b;
+    text-align: center;
+    margin-bottom: 10px;
+}
+.success-message {
+    color: #27ae60;
+    text-align: center;
+    margin-bottom: 10px;
+}

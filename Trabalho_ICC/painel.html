@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Usuário</title>
+    <link rel="stylesheet" href="source/style.css">
+</head>
+<body>
+    <header class="main-header">
+        <img src="source/logo.png" alt="Logo" class="logo-img">
+        <nav class="header-nav">
+            <button id="logout-btn" class="header-btn">Logout</button>
+        </nav>
+    </header>
+    <div class="container">
+        <h1>Controle de Ração</h1>
+        <p>Ajuste o tempo de rotação para despejar a ração.</p>
+        <label for="tempo">Tempo de Rotação (segundos): </label>
+        <input type="number" id="tempo" min="1" max="30" value="5">
+        <br><br>
+        <button id="btnRodar">Despejar Ração</button>
+        <p id="status"></p>
+    </div>
+    <script src="source/comunicacao.js"></script>
+    <script>
+    // Proteger rota: só acessa se autenticado
+    if (!localStorage.getItem('autenticado')) {
+        window.location.href = 'login.html';
+    }
+    // Botão de logout
+    document.getElementById('logout-btn').onclick = function() {
+        localStorage.removeItem('autenticado');
+        window.location.href = 'login.html';
+    };
+    </script>
+</body>
+</html>

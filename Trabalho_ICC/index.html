@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Ração</title>
+    <link rel="stylesheet" href="source/style.css">
+</head>
+<body>
+    <header class="main-header">
+        <img src="source/logo.png" alt="Logo" class="logo-img">
+        <nav class="header-nav">
+            <a href="login.html" class="header-btn">Entrar</a>
+            <a href="login.html" class="header-btn">Registrar</a>
+        </nav>
+    </header>
+    <div class="main-content-flex">
+        <div class="main-content-text">
+            <h1>Auto Feed</h1>
+            <p>O Auto Feed é um projeto de faculdade que busca automatizar a alimentação de peixes. Aqui em nosso site você poderá encomendar um alimentador 100% automático em que você decidirá o quanto de ração seu peixe receberá, quantas vezes ao dia e em qual horário. Crie seu usuário e personalize o tratamento do seu peixe agora mesmo!</p>
+        </div>
+        <div class="main-content-image">
+            <!-- Espaço reservado para imagem -->
+        </div>
+    </div>
+    <script src="source/comunicacao.js"></script>
+    <script>
+    // Botão de logout
+    document.getElementById('logout-btn').onclick = function() {
+        localStorage.removeItem('autenticado');
+        window.location.href = 'login.html';
+    };
+    </script>
+</body>
+</html>
