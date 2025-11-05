@@ -8,10 +8,10 @@
 </head>
 <body>
     <header class="main-header">
-        <img src="source/logo.png" alt="Logo" class="logo-img">
+        <a href="index.html"><img src="source/logo.png" alt="Logo" class="logo-img"></a>
         <nav class="header-nav">
             <a href="login.html" class="header-btn">Entrar</a>
-            <a href="login.html" class="header-btn">Registrar</a>
+            <a href="login.html?mode=register" class="header-btn">Registrar</a>
         </nav>
     </header>
     <div class="main-content-flex">
@@ -25,11 +25,20 @@
     </div>
     <script src="source/comunicacao.js"></script>
     <script>
-    // Botão de logout
-    document.getElementById('logout-btn').onclick = function() {
-        localStorage.removeItem('autenticado');
-        window.location.href = 'login.html';
-    };
+        // Ajusta o header conforme estado de autenticação
+        (function(){
+            const nav = document.querySelector('.header-nav');
+            const isAuth = localStorage.getItem('autenticado');
+            const userName = localStorage.getItem('userName') || null;
+            if(isAuth && nav){
+                nav.innerHTML = '';
+                // link para painel.html
+                            if(userName){ const span = document.createElement('span'); span.style.margin='0 8px'; span.style.color='#22304a'; span.textContent = 'Olá, ' + userName; nav.appendChild(span); }
+                            const aPanel = document.createElement('a'); aPanel.href='painel.html'; aPanel.className='header-btn'; aPanel.textContent='Painel'; nav.appendChild(aPanel);
+                // logout
+                const btn = document.createElement('button'); btn.className='header-btn'; btn.id='logout-btn'; btn.textContent='Logout'; btn.onclick = function(){ localStorage.removeItem('autenticado'); window.location.href='login.html'; }; nav.appendChild(btn);
+            }
+        })();
     </script>
 </body>
 </html>
