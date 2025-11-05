@@ -1,38 +1,160 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel do Usuário</title>
-    <link rel="stylesheet" href="source/style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Painel - Agendamento (Projeto)</title>
+  <link rel="stylesheet" href="source/style.css">
+  <style>
+    /* Pequenos ajustes específicos para o painel de agendamento */
+    .time-picker { display:flex; gap:8px; align-items:center; margin:8px 0; }
+    .time-picker select { padding:8px; border-radius:6px; border:1px solid #d0d7df; background:#fff; }
+    .card { background:#fff; padding:16px; border-radius:10px; box-shadow: 0 4px 16px rgba(44,62,80,0.06); }
+    .muted { color:#55636f; margin-top:6px; }
+    .checkboxes label { margin-right:12px; }
+  </style>
 </head>
 <body>
-    <header class="main-header">
-        <img src="source/logo.png" alt="Logo" class="logo-img">
-        <nav class="header-nav">
-            <button id="logout-btn" class="header-btn">Logout</button>
-        </nav>
-    </header>
-    <div class="container">
-        <h1>Controle de Ração</h1>
-        <p>Ajuste o tempo de rotação para despejar a ração.</p>
-        <label for="tempo">Tempo de Rotação (segundos): </label>
-        <input type="number" id="tempo" min="1" max="30" value="5">
-        <br><br>
-        <button id="btnRodar">Despejar Ração</button>
-        <p id="status"></p>
-    </div>
-    <script src="source/comunicacao.js"></script>
-    <script>
-    // Proteger rota: só acessa se autenticado
-    if (!localStorage.getItem('autenticado')) {
-        window.location.href = 'login.html';
+  <header class="main-header">
+    <a href="index.html"><img src="source/logo.png" alt="Logo" class="logo-img"></a>
+    <nav class="header-nav">
+      <button id="logout-btn" class="header-btn">Logout</button>
+      <span id="profileLinkArea"></span>
+    </nav>
+  </header>
+
+  <main class="container">
+    <h1>Agendamento - Projeto</h1>
+    <p class="muted">Configure quantas vezes por dia (até 3) e os horários. Embaixo, há controles manuais.</p>
+
+    <section class="card" style="margin-bottom:16px;">
+      <h2>Quantas vezes por dia dar ração?</h2>
+      <div class="checkboxes" style="margin-top:12px;">
+        <label><input type="radio" name="times" value="1"> 1 vez</label>
+        <label><input type="radio" name="times" value="2"> 2 vezes</label>
+        <label><input type="radio" name="times" value="3"> 3 vezes</label>
+      </div>
+
+      <div id="time-pickers"></div>
+
+      <div style="display:flex; gap:8px; margin-top:12px; align-items:center;">
+        <label style="display:flex; align-items:center; gap:8px;">Duração por acionamento (s):
+          <input id="feedDuration" type="number" min="1" max="600" value="10" style="width:120px; padding:8px;">
+        </label>
+        <button id="saveSchedulesBtn" class="btn">Salvar Agendamentos</button>
+        <button id="clearBtn2" class="btn btn-danger">Limpar todos</button>
+      </div>
+      <div id="msgArea" class="message" style="margin-top:8px;"></div>
+    </section>
+
+    <section class="card">
+      <h2>Executar motor manualmente</h2>
+      <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+        <input id="manualSeconds" type="number" min="1" max="30" value="5" style="width:120px; padding:8px;">
+        <button id="manualRunBtn" class="btn">Executar</button>
+      </div>
+    </section>
+
+    <footer style="margin-top:18px; font-size:0.9rem; color:#55636f;">
+      <p>Use a mesma rede do ESP. Se o ESP estiver em IP diferente, abra <code>source/schedules.js</code> e ajuste <code>ESP_ROOT</code>.</p>
+    </footer>
+  </main>
+
+  <script>
+    // configuração do root do ESP (edite se necessário)
+    const ESP_ROOT = window.location.protocol + '//' + window.location.hostname;
+
+    function showMsg(text, isError){ const el = document.getElementById('msgArea'); if(!el) return; el.textContent = text; el.style.color = isError ? '#a00' : '#0a0'; setTimeout(()=>el.textContent='',6000); }
+
+    // Cria time picker (hora e minuto em passos de 5)
+    function createTimePicker(index){
+      const wrapper = document.createElement('div'); wrapper.className='time-picker'; wrapper.dataset.index = index;
+      const hour = document.createElement('select');
+      for(let i=0;i<24;i++){ const o=document.createElement('option'); o.value=i; o.textContent = String(i).padStart(2,'0'); hour.appendChild(o);} 
+      const colon = document.createTextNode(':');
+      const minute = document.createElement('select');
+      for(let i=0;i<60;i+=5){ const o=document.createElement('option'); o.value=i; o.textContent = String(i).padStart(2,'0'); minute.appendChild(o);} 
+      wrapper.appendChild(hour); wrapper.appendChild(colon); wrapper.appendChild(minute);
+      return wrapper;
     }
-    // Botão de logout
-    document.getElementById('logout-btn').onclick = function() {
-        localStorage.removeItem('autenticado');
-        window.location.href = 'login.html';
-    };
-    </script>
+
+    // Atualiza pickers conforme rádio
+    document.querySelectorAll('input[name="times"]').forEach(r=> r.addEventListener('change', function(){
+      const times = parseInt(this.value,10); const container = document.getElementById('time-pickers'); container.innerHTML='';
+      for(let i=0;i<times;i++) container.appendChild(createTimePicker(i));
+    }));
+
+    // Salvar agendamentos: mapeia para slots 0..N-1 e chama /setSchedule
+    async function saveSchedules(){
+      const pickers = document.querySelectorAll('#time-pickers .time-picker');
+      if(pickers.length===0){ showMsg('Selecione quantas vezes por dia antes de salvar', true); return; }
+      const duration = parseInt(document.getElementById('feedDuration').value||'0',10);
+      if(isNaN(duration) || duration<1 || duration>600){ showMsg('Duração inválida (1-600s)', true); return; }
+      try{
+        for(let i=0;i<pickers.length;i++){
+          const p = pickers[i]; const hour = p.querySelector('select:nth-child(1)').value; const minute = p.querySelector('select:nth-child(3)').value;
+          const url = `${ESP_ROOT}/setSchedule?slot=${i}&hour=${hour}&minute=${minute}&duration=${duration}`;
+          const res = await fetch(url);
+          if(!res.ok){ const t=await res.text(); throw new Error(t||'Erro ao salvar slot '+i); }
+        }
+        showMsg('Agendamentos salvos com sucesso', false);
+      }catch(e){ showMsg('Erro: '+e.message, true); }
+    }
+
+    async function clearAll(){ if(!confirm('Limpar todos os agendamentos?')) return; try{ const r=await fetch(ESP_ROOT+'/clearSchedules'); if(!r.ok) throw new Error('Falha'); showMsg('Agendamentos limpos', false);}catch(e){ showMsg('Erro: '+e.message, true);} }
+
+    async function manualRun(){ const s=parseInt(document.getElementById('manualSeconds').value||'0',10); if(isNaN(s)||s<1||s>30){ showMsg('Digite 1-30 segundos', true); return;} try{ const r=await fetch(`${ESP_ROOT}/motor?tempo=${s}`); if(!r.ok){ const t=await r.text(); throw new Error(t||'Erro'); } showMsg('Comando enviado', false);}catch(e){ showMsg('Erro: '+e.message, true);} }
+
+    document.getElementById('saveSchedulesBtn').addEventListener('click', saveSchedules);
+    document.getElementById('clearBtn2').addEventListener('click', clearAll);
+    document.getElementById('manualRunBtn').addEventListener('click', manualRun);
+
+    // proteção simples de rota e logout
+    if (!localStorage.getItem('autenticado')) { window.location.href='login.html'; }
+    const logoutBtn = document.getElementById('logout-btn'); if(logoutBtn) logoutBtn.onclick = ()=>{ localStorage.removeItem('autenticado'); window.location.href='login.html'; };
+    // mostra o ícone de perfil apenas quando autenticado
+    (async function(){
+      const area = document.getElementById('profileLinkArea');
+      const email = localStorage.getItem('userEmail');
+      if(!area || !email || !localStorage.getItem('autenticado')) return;
+      // tenta avatar do localStorage (chave perfil:<email>)
+      let avatar = null;
+      try{
+        const local = localStorage.getItem('perfil:' + email);
+        if(local){
+          const obj = JSON.parse(local);
+          if(obj.avatarData) avatar = obj.avatarData;
+        }
+      }catch(e){ /* ignore */ }
+      // se não tem, tenta buscar do servidor
+      if(!avatar){
+        try{
+          const resp = await fetch('http://127.0.0.1:5000/api/getProfile?email=' + encodeURIComponent(email));
+          if(resp.ok){
+            const j = await resp.json().catch(()=>null);
+            if(j && j.success && j.user && j.user.avatar) avatar = j.user.avatar;
+          }
+        }catch(e){ /* ignore network errors */ }
+      }
+
+      const a = document.createElement('a');
+      a.href = 'perfil.html';
+      a.className = 'header-profile';
+      a.title = 'Perfil';
+      if(avatar){
+        const img = document.createElement('img');
+        img.src = avatar;
+        img.alt = 'Avatar';
+        img.className = 'header-avatar';
+        a.appendChild(img);
+      } else {
+        const span = document.createElement('span');
+        span.className = 'profile-ico';
+        span.textContent = '👤';
+        a.appendChild(span);
+      }
+      area.appendChild(a);
+    })();
+  </script>
 </body>
 </html>
