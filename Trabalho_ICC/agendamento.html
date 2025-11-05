@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agendamento - Painel</title>
+  <link rel="stylesheet" href="source/style.css">
+</head>
+<body>
+    <header class="main-header">
+        <a href="index.html"><img src="source/logo.png" alt="Logo" class="logo-img"></a>
+            <nav class="header-nav">
+                <a href="painel.html" class="header-btn">Painel</a>
+                <button id="logout-btn" class="header-btn">Logout</button>
+            </nav>
+    </header>
+
+  <main class="container">
+    <h1>Gerenciar Agendamentos</h1>
+    <p class="muted">Aqui você pode criar, editar e remover até 3 agendamentos diários. As alterações são enviadas ao dispositivo conectado na rede.</p>
+
+    <section class="schedule-container" id="scheduleContainer">
+      <!-- preenchido por JS -->
+    </section>
+
+    <div class="controls-row" style="margin-top:12px;">
+      <button id="refreshBtn" class="btn">Atualizar</button>
+      <button id="clearBtn" class="btn btn-danger">Limpar todos</button>
+    </div>
+
+    <div id="message" class="message" aria-live="polite"></div>
+
+    <hr style="margin:24px 0;">
+
+    <section class="card">
+      <h2>Executar motor manualmente</h2>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <input id="manualSeconds" type="number" min="1" max="30" value="5" style="width:100px; padding:8px;">
+        <button id="manualRunBtn" class="btn">Executar</button>
+      </div>
+    </section>
+
+    <footer style="margin-top:18px; font-size:0.9rem; color:#55636f;">
+      <p>Se o ESP estiver em outro IP, abra <code>source/schedules.js</code> e altere <code>ESP_ROOT</code> no topo.</p>
+    </footer>
+  </main>
+
+  <script src="source/schedules.js"></script>
+  <script>
+    // proteção simples de rota
+    if (!localStorage.getItem('autenticado')) {
+      window.location.href = 'login.html';
+    }
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) logoutBtn.onclick = () => { localStorage.removeItem('autenticado'); window.location.href='login.html'; };
+  </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendamento de Ração</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 600px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .checkboxes {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+        .checkboxes label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        .checkboxes input[type="radio"] {
+            margin-right: 8px;
+        }
+        .time-picker {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .time-picker select {
+            margin: 0 5px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #fff;
+            font-size: 16px;
+        }
+        .time-picker select:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        #time-pickers {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Quantas vezes por dia dar ração?</h2>
+        <div class="checkboxes">
+            <label>
+                <input type="radio" name="times" value="1"> 1 vez
+            </label>
+            <label>
+                <input type="radio" name="times" value="2"> 2 vezes
+            </label>
+            <label>
+                <input type="radio" name="times" value="3"> 3 vezes
+            </label>
+        </div>
+        <div id="time-pickers">
+            <!-- Os pickers de horário serão inseridos aqui via JavaScript -->
+        </div>
+    </div>
+
+    <script>
+        const radios = document.querySelectorAll('input[name="times"]');
+        const timePickersContainer = document.getElementById('time-pickers');
+
+        function createTimePicker() {
+            const picker = document.createElement('div');
+            picker.className = 'time-picker';
+
+            // Select para horas (0-23)
+            const hourSelect = document.createElement('select');
+            for (let i = 0; i < 24; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i.toString().padStart(2, '0');
+                hourSelect.appendChild(option);
+            }
+
+            // Select para minutos (0-59)
+            const minuteSelect = document.createElement('select');
+            for (let i = 0; i < 60; i+=5) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i.toString().padStart(2, '0');
+                minuteSelect.appendChild(option);
+            }
+
+            picker.appendChild(hourSelect);
+            picker.appendChild(document.createTextNode(':'));
+            picker.appendChild(minuteSelect);
+
+            return picker;
+        }
+
+        radios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                const times = parseInt(this.value);
+                timePickersContainer.innerHTML = ''; // Limpa os pickers anteriores
+                for (let i = 0; i < times; i++) {
+                    timePickersContainer.appendChild(createTimePicker());
+                }
+                timePickersContainer.style.display = 'block'; // Mostra os pickers
+            });
+        });
+    </script>
+</body>
+</html>

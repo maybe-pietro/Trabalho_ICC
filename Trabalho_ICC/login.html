@@ -3,13 +3,13 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Login / Cadastro</title>
+	<title>Bem vindo ao site</title>
 	<link rel="stylesheet" href="source/style.css">
 	<link rel="stylesheet" href="source/login.css">
 </head>
 <body>
 	<header class="main-header">
-		<img src="source/logo.png" alt="Logo" class="logo-img">
+		<a href="index.html"><img src="source/logo.png" alt="Logo" class="logo-img"></a>
 		<nav class="header-nav">
 			<a href="index.html" class="header-btn">Voltar para início</a>
 		</nav>
@@ -60,6 +60,12 @@
 		messageDiv.textContent = '';
 	};
 
+	// Se query param mode=register, abre o formulário de registro automaticamente
+	const urlParams = new URLSearchParams(window.location.search);
+	if (urlParams.get('mode') === 'register') {
+		showRegister.click();
+	}
+
 	// Função para exibir mensagens
 	function showMessage(msg, success=false) {
 		messageDiv.textContent = msg;
@@ -107,11 +113,16 @@
 			const data = await resp.json();
 			if (resp.ok && data.success) {
 				showMessage(data.message, true);
-				// Simula autenticação local
+				// Simula autenticação local e salva e-mail/nome retornados pelo servidor
 				localStorage.setItem('autenticado', '1');
-				setTimeout(() => {
-					window.location.href = 'painel.html';
-				}, 1000);
+				if (data.user) {
+					localStorage.setItem('userEmail', data.user.email);
+					// prefer full name if available
+					localStorage.setItem('userName', (data.user.nome || '') + (data.user.sobrenome ? ' ' + data.user.sobrenome : ''));
+				} else {
+					localStorage.setItem('userEmail', email);
+				}
+				setTimeout(() => { window.location.href = 'painel.html'; }, 800);
 			} else {
 				showMessage(data.message || 'Erro ao fazer login.');
 			}
