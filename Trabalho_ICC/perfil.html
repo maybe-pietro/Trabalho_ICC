@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Perfil do Usuário</title>
+  <link rel="stylesheet" href="source/style.css">
+  <style>
+    .profile-form { max-width:720px; margin:24px auto; display:flex; gap:24px; align-items:flex-start; }
+    .profile-left { flex:0 0 160px; }
+    .avatar-preview { width:140px; height:140px; border-radius:50%; background:#eef2f5; display:flex; align-items:center; justify-content:center; font-size:48px; color:#7a8aa3; overflow:hidden; }
+    .profile-right { flex:1; }
+    .field { margin-bottom:12px; }
+    label{ display:block; font-weight:600; margin-bottom:6px; color:#2d3a4b }
+    input[type=text], input[type=password] { width:100%; padding:10px; border:1px solid #d7dde6; border-radius:8px; }
+    .small { font-size:0.9rem; color:#55636f }
+  </style>
+</head>
+<body>
+  <header class="main-header">
+    <a href="index.html"><img src="source/logo.png" alt="Logo" class="logo-img"></a>
+    <nav class="header-nav">
+      <a href="painel.html" class="header-btn">Painel</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <h1>Seu Perfil</h1>
+    <p class="muted">Atualize seu nome de usuário, senha e foto de perfil. As mudanças são salvas localmente (exemplo).</p>
+    <p id="emailLine" class="small" style="margin-top:6px;"></p>
+
+    <div class="profile-form card">
+      <div class="profile-left">
+        <div id="avatarPreview" class="avatar-preview">👤</div>
+        <div style="margin-top:8px;"><input id="avatarInput" type="file" accept="image/*"></div>
+      </div>
+      <div class="profile-right">
+        <div class="field">
+          <label for="username">Nome de usuário</label>
+          <input id="username" type="text" placeholder="Digite seu nome">
+        </div>
+        <div class="field">
+          <label for="password">Senha</label>
+          <input id="password" type="password" placeholder="Nova senha">
+        </div>
+        <div class="field">
+          <label for="password2">Confirmar senha</label>
+          <input id="password2" type="password" placeholder="Confirme a senha">
+        </div>
+        <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+          <button id="saveProfile" class="btn">Salvar</button>
+          <a href="painel.html" class="header-btn">Voltar</a>
+        </div>
+        <div id="profileMsg" style="margin-top:10px;" class="small"></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // carregar dados do localStorage vinculados ao e-mail do usuário (se autenticado)
+    const avatarInput = document.getElementById('avatarInput');
+    const avatarPreview = document.getElementById('avatarPreview');
+    const username = document.getElementById('username');
+    const password = document.getElementById('password');
+    const password2 = document.getElementById('password2');
+    const profileMsg = document.getElementById('profileMsg');
+
+    const userEmail = localStorage.getItem('userEmail') || null;
+    function profileKey(email){ return 'perfil:' + email; }
+
+    async function loadProfile(){
+      if(!userEmail){ profileMsg.textContent = 'Nenhum usuário autenticado.'; profileMsg.style.color = '#a00'; return; }
+      const emailLine = document.getElementById('emailLine');
+      if(emailLine) emailLine.textContent = 'Conectado como: ' + userEmail;
+      // tenta carregar do servidor
+      try{
+        const resp = await fetch('http://127.0.0.1:5000/api/getProfile?email=' + encodeURIComponent(userEmail));
+        if(resp.ok){
+          const j = await resp.json();
+          if(j.success && j.user){
+            const u = j.user;
+            username.value = u.nome || '';
+            if(u.avatar){ avatarPreview.innerHTML=''; const img=new Image(); img.src=u.avatar; img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover'; avatarPreview.appendChild(img); avatarPreview.dataset.src = u.avatar; }
+            return;
+          }
+        }
+      }catch(e){ /* fallback para local */ }
+      // fallback localStorage
+      const profile = JSON.parse(localStorage.getItem(profileKey(userEmail))||'{}');
+      if(profile.username) username.value = profile.username;
+      if(profile.avatarData){ avatarPreview.innerHTML = ''; const img = new Image(); img.src = profile.avatarData; img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover'; avatarPreview.appendChild(img); avatarPreview.dataset.src = profile.avatarData; }
+    }
+    loadProfile();
+
+    avatarInput.addEventListener('change', function(){
+      const f = this.files && this.files[0];
+      if(!f) return;
+      const reader = new FileReader();
+      reader.onload = function(e){ avatarPreview.innerHTML = ''; const img=new Image(); img.src=e.target.result; img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover'; avatarPreview.appendChild(img); avatarPreview.dataset.src = e.target.result; };
+      reader.readAsDataURL(f);
+    });
+
+    document.getElementById('saveProfile').addEventListener('click', async function(){
+      if(!userEmail){ profileMsg.textContent='Usuário não autenticado.'; profileMsg.style.color='#a00'; return; }
+      if(password.value || password2.value){ if(password.value !== password2.value){ profileMsg.textContent='Senhas não conferem'; profileMsg.style.color='#a00'; return; } }
+      const payload = { email: userEmail, nome: username.value || '', sobrenome: '' };
+      if(password.value) payload.senha = password.value;
+      if(avatarPreview.dataset.src) payload.avatar = avatarPreview.dataset.src;
+      try{
+        const r = await fetch('http://127.0.0.1:5000/api/updateProfile', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+        const j = await r.json().catch(()=>null);
+        if(r.ok && j && j.success){
+          // save also locally as fallback
+          const profile = { username: username.value || '', avatarData: avatarPreview.dataset.src || '' };
+          localStorage.setItem(profileKey(userEmail), JSON.stringify(profile));
+          profileMsg.textContent = 'Perfil salvo no servidor.'; profileMsg.style.color='#0a0';
+        } else {
+          throw new Error((j && j.message) ? j.message : 'Erro ao salvar no servidor');
+        }
+      }catch(e){ profileMsg.textContent = 'Erro: '+e.message; profileMsg.style.color='#a00'; }
+      setTimeout(()=>profileMsg.textContent='',4000);
+    });
+  </script>
+</body>
+</html>
